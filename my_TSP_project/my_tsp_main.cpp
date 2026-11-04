@@ -12,6 +12,8 @@
 #include<ctime>
 #include<chrono>
 #include<set>
+#include <filesystem>
+
 
 // 获取当前时间，格式为 "YYYYMMDD_HHMMSS"
 std::string getTimestamp()
@@ -43,6 +45,7 @@ using MutateFunc = std::function<void(std::vector<int>&, const TspInstance&, std
 
 int main(int argc, char** argv)
 {
+	std::filesystem::create_directories("results");			//若当前文件夹没有"results"文件夹，则会自动创建一个
 	std::cout << "成功执行一次实验" << std::endl;
 	int n = 50;					//城市数
 	int popSize = 100;			//种群规模
@@ -77,7 +80,7 @@ int main(int argc, char** argv)
 
 	//给结果文件取名
 	std::string nowtime = getTimestamp();
-	std::string FilePath = "E:\\CodeTools\\Project\\my_TSP_project\\results\\";
+	std::string FilePath = "results\\";
 	std::string FileName = selName + "_" + crossName + "_" + mutName + "_" + std::to_string(seed) + "_"+nowtime;
 	std::string FullFile = FilePath + FileName+ ".csv";
 	std::string FileGragh = FilePath + FileName + "_gragh" + ".csv";
@@ -231,7 +234,6 @@ int main(int argc, char** argv)
 		{
 			finalstop = StopGen;
 		}
-
 
 		///控制台测试区
 		// 1. 看看种群多样性（有多少个不同的个体）
