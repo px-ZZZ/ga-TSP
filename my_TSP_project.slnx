@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="my_TSP_project/my_TSP_project.vcxproj" Id="877ae5cd-5f4d-4b8d-b364-fbfdc0641811" />
+</Solution>

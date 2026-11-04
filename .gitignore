@@ -1,0 +1,31 @@
+# Visual Studio build artifacts. NEVER commit these.
+# Why: .vs/ipch caches are 100+ MB each, and GitHub rejects files over 100 MB.
+.vs/
+x64/
+Debug/
+Release/
+*.ipch
+*.idb
+*.ilk
+*.pdb
+*.obj
+*.tlog
+*.lastbuildstate
+*.VC.db
+*.VC.opendb
+
+# Executables
+*.exe
+*.dll
+
+# Per-user project settings (differs on every machine)
+*.vcxproj.user
+
+# OS / editor
+Thumbs.db
+desktop.ini
+.vscode/
+
+# Temp files
+*.tmp
+*.log

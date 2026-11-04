@@ -1,0 +1,25 @@
+交叉率						--pc 数字			默认0.9
+变异率						--pm 数字			默认0.3
+城市数						--n 数字			默认50
+种群规模						--popS 数字  		默认100
+代数							--gens 数字		默认500
+随机数种子						 --seed 数字  		默认42
+
+选择：0，精英保留  				--eli 数字		表示保留几个精英，默认2
+选择：1，锦标赛	（默认）   			--sel tournament		--k 数字 		k表示锦标赛规模，默认3
+选择：2，基于倒数1次方的轮盘赌		--sel r1
+选择：3，基于倒数2次方的轮盘赌		--sel r2
+选择：4，基于排名的轮盘赌			--sel rank
+
+交叉：1，顺序交叉（默认）			--cross OX	
+
+变异：1，交换变异（默认）			-mut swap
+变异：2，2-opt变异				--mut 2opt
+变异：3，2-opt加贪心变异			--mut 2optG
+
+指令例子：跑十次默认策略，种子从1到10
+@echo off
+for /L %%i in (1,1,10) do
+(
+	x64\Debug\my_TSP_project.exe --sel tournament --mut swap --seed %%i
+)
