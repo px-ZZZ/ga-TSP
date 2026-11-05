@@ -14,8 +14,8 @@
 #include<set>
 #include <filesystem>
 
-
-// 获取当前时间，格式为 "YYYYMMDD_HHMMSS"
+//========================================1，搭建策略参数、输出文件格式========================================
+// ====================获取当前时间，格式为 "YYYYMMDD_HHMMSS===================="
 std::string getTimestamp()
 {
 	// 1. 获取当前系统时间点
@@ -31,7 +31,7 @@ std::string getTimestamp()
 	return oss.str();
 }
 
-//搭建“控制面板”
+//====================搭建“控制面板====================”
 // 1. 定义选择算子的插槽
 // 参数：					返回：选中的下标	len数组，		 k值，	 随机数引擎。
 using SelectFunc = std::function<int(const std::vector<double>&, int, std::mt19937&)>;
@@ -47,6 +47,7 @@ int main(int argc, char** argv)
 {
 	std::filesystem::create_directories("results");			//若当前文件夹没有"results"文件夹，则会自动创建一个
 	std::cout << "成功执行一次实验" << std::endl;
+//====================搭建参数默认值====================
 	int n = 50;					//城市数
 	int popSize = 100;			//种群规模
 	int gens = 500;				//代数
@@ -63,7 +64,7 @@ int main(int argc, char** argv)
 
 	std::string SaveMethod = "experiment";			//保存方法（默认值）
 
-	//读取参数
+//====================读取参数====================
 	for (int i = 1;i < argc;i++)
 	{
 		std::string arg = argv[i];
@@ -81,7 +82,7 @@ int main(int argc, char** argv)
 		else if (arg == "--save" && i + 1 < argc) SaveMethod = argv[++i];				//保存方法
 	}
 
-	//给结果文件取名
+//====================给结果文件取路径取名====================
 	std::string nowtime = getTimestamp();
 	std::string FilePath = "results\\";
 	std::string FileName;
@@ -95,17 +96,12 @@ int main(int argc, char** argv)
 	else
 		FullFile = FilePath + FileName + "_gragh" + ".csv";
 
-	//std::ofstream outGragh(FileGragh, std::ios::app);													//以纯数据形式存储（一次实验一个文件）
-	//if (!outGragh)
-	//	throw std::invalid_argument("无效的输出图表路径：" + FileGragh);
-	//if(SaveMethod=="gragh")
-	//	outGragh << "gen" << "," << "best" << '\n';
 	std::ofstream out(FullFile,std::ios::app);										//存入当前策略（一次实验一个文件）
 	if (!out)
 		throw std::invalid_argument("无效的输出结果路径：" + FullFile);
-
-	out.seekp(0, std::ios::end);
-	bool Is_empty = out.tellp();
+//====================输出策略参数====================
+	out.seekp(0, std::ios::end);													//读取文件末尾
+	bool Is_empty = out.tellp();													//判断文件是否为空，空则需要输出策略参数
 	if (SaveMethod != "gragh" && !Is_empty)
 	{
 		out << selName << "_" << crossName << "_" << mutName << '\n';
@@ -125,11 +121,10 @@ int main(int argc, char** argv)
 	if(SaveMethod=="whole"||SaveMethod=="gragh")
 		out << "gen" << "," << "best" << '\n';
 
-	//初始化插槽变量（待插入具体函数名）
-	SelectFunc selectFunc;
+//====================插入对应函数（选择、交叉、变异）====================
+	SelectFunc selectFunc;			//初始化插槽变量（待插入具体函数名）
 	CrossoverFunc crossFunc;
 	MutateFunc mutateFunc;
-
 	//选择
 	if (selName == "tournament")
 		selectFunc = SelectByTournament;
@@ -157,61 +152,55 @@ int main(int argc, char** argv)
 		mutateFunc = Mutate_TwoOptGreedy;
 	else
 		throw std::invalid_argument("无效的变异策略：" + mutName);
-
+//========================================2，实例化城市类========================================
 	std::mt19937 rng(seed);
 	TspInstance inst = TspInstance::RandomGenerate(n, 42);		//以42作为随机数种子实例化一个对象(重复实验都不改变这个值)
-
 	std::vector<int> base(n);										//初始化路径：从0一直走到49号城市
 	for (int i = 0;i < n;i++)
 		base[i] = i;
-
 	std::uniform_real_distribution<double> r(0.0, 1.0);		//0到1之间的随机数，用于判断是否变异和交叉
 	double RandNum = r(rng);
-
-	std::vector<std::vector<int>> pop(popSize);						//pop即为一个100行，50列的二维数组，用于记录100个路径
+	std::vector<std::vector<int>> pop(popSize);						//pop即为一个popSize行，n（城市数）列的二维数组，用于记录100个路径
 	//！每个pop[i]都是一个tour！
-
 	for (int i = 0;i < popSize;i++)
 	{
 		pop[i] = base;												//让pop的某一行基于base随机打乱
 		std::shuffle(pop[i].begin(), pop[i].end(), rng);			//从而生成100个路径的个体
 	}
-
 	std::vector<double> len(popSize);								//初步算出初始种群的路径长短
-	for (int i = 0;i < popSize;i++)
-	{
+	for (int i = 0;i < popSize;i++){
 		len[i] = inst.LengthOfTour(pop[i]);
 	}
 
 	double FirstBest = *std::min_element(len.begin(), len.end());	//存入起始的最优路径
+//====================输出初始状态====================
 	if(SaveMethod=="whole")
 		out << -1 << "," <<std::fixed<<std::setprecision(4)<< FirstBest << '\n';
+//====================判断收敛所需变量====================
 	int StopGen = 0;												//判断第几代收敛
 	double Shortest = 1e9;
 	int count = 0;													//连续多少代不变判断为收敛
 	int finalstop = 0;
 	
-
+//========================================3，开始演化gens代========================================
+//====================外层循环：代际演化====================
 	for (int g = 0;g < gens;g++)
 	{
 		std::vector<std::vector<int>> nextpop;						//子种群，同样是一个二维数组
 		nextpop.reserve(popSize);									//为什么要用reserve而不是提前定大小？为了后面用大小作为循环条件
 
-		//0.精英保留
-		std::vector<int> eliteIndex(eli);
-		eliteIndex = Elitism(len, eli);
+		//0.精英保留====================注意：必须放在内层循环之外，防止基因池快速干涸
+		std::vector<int> eliteIndex(eli);							//记录精英的下标
+		eliteIndex = Elitism(len, eli);								
 		for (int i = 0;i < eli;i++)
 			nextpop.push_back(pop[eliteIndex[i]]);
-
+//====================内层循环：处理个体====================
 		while (nextpop.size() < popSize)
 		{
-			
-			//1.选择
-			int idx1 = selectFunc(len, k, rng);
-			int idx2 = selectFunc(len, k, rng);
-
 			std::vector<int> child;									//子代
-
+			//1.选择
+			int idx1 = selectFunc(len, k, rng);						//选择两个下标作为父代
+			int idx2 = selectFunc(len, k, rng);
 			//2.交叉
 			if (RandNum < pc)										//满足交叉率
 			{
@@ -219,7 +208,11 @@ int main(int argc, char** argv)
 			}
 			else													//不发生交叉时，子代直接等于其中一个父代
 			{
-				child = pop[idx1];
+				std::uniform_int_distribution coin(0, 1);			//随机选择两个父代其中一个
+				if (coin(rng))
+					child = pop[idx1];
+				else
+					child = pop[idx2];
 			}
 
 			//3.变异
@@ -237,12 +230,10 @@ int main(int argc, char** argv)
 			len[i] = inst.LengthOfTour(pop[i]);						//重新算路径长度
 		}
 
-		double currentBest = *std::min_element(len.begin(), len.end());
+		double currentBest = *std::min_element(len.begin(), len.end());								//取所有个体里的最优个体长度
 
-		if(SaveMethod=="whole")
+		if(SaveMethod=="whole"|| SaveMethod == "gragh")
 			out << g << "," << std::fixed << std::setprecision(4) << currentBest << '\n';			//每一代结果存入文件
-		if(SaveMethod=="gragh")
-			out << g << "," << std::fixed << std::setprecision(4) << currentBest << '\n';
 
 		if (currentBest < Shortest)									//判断是否收敛
 		{
@@ -256,16 +247,10 @@ int main(int argc, char** argv)
 		{
 			finalstop = StopGen;
 		}
-		///控制台测试区
-		// 1. 看看种群多样性（有多少个不同的个体）
-		//std::set<std::vector<int>> unique_pop(pop.begin(), pop.end());
-		//std::cout << "第 " << g << " 代，不同个体数量: " << unique_pop.size() << "\n";
-
-		//// 2. 看看最差的那个有多差
-		//double worst = *std::max_element(len.begin(), len.end());
-		//std::cout << "当前代最好: " << currentBest << "，最差: " << worst << "\n";
-		//======================================================
+	
 	}
+
+//========================================4，结束ga========================================
 	if (finalstop == 0 && count != 0)
 		finalstop = StopGen;
 	std::vector<int> NearestTour = NearestNeighbor(inst);
