@@ -50,16 +50,18 @@ int main(int argc, char** argv)
 	int n = 50;					//城市数
 	int popSize = 100;			//种群规模
 	int gens = 500;				//代数
-	int seed = 4;				//随机数种子
+	int seed = 42;				//随机数种子
 
 	int k = 3;					//锦标赛规模
 	double pc = 0.9;			//交叉率
 	double pm = 0.9;			//变异率
 	int eli = 2;				//精英数
 
-	std::string selName = "tournament";			//选择方法
-	std::string crossName = "OX";				//交叉方法
-	std::string mutName = "swap";				//变异方法
+	std::string selName = "tournament";			//选择方法（默认值）
+	std::string crossName = "OX";				//交叉方法（默认值）
+	std::string mutName = "swap";				//变异方法（默认值）
+
+	std::string SaveMethod = "experiment";			//保存方法（默认值）
 
 	//读取参数
 	for (int i = 1;i < argc;i++)
@@ -76,26 +78,52 @@ int main(int argc, char** argv)
 		else if (arg == "--gens" && i + 1 < argc) gens = std::stoi(argv[++i]);			//代数
 		else if (arg == "--seed" && i + 1 < argc) seed = std::stoi(argv[++i]);			//随机数种子
 		else if (arg == "--eli" && i + 1 < argc) eli = std::stoi(argv[++i]);			//精英数
+		else if (arg == "--save" && i + 1 < argc) SaveMethod = argv[++i];				//保存方法
 	}
 
 	//给结果文件取名
 	std::string nowtime = getTimestamp();
 	std::string FilePath = "results\\";
-	std::string FileName = selName + "_" + crossName + "_" + mutName + "_" + std::to_string(seed) + "_"+nowtime;
-	std::string FullFile = FilePath + FileName+ ".csv";
-	std::string FileGragh = FilePath + FileName + "_gragh" + ".csv";
+	std::string FileName;
+	if (SaveMethod == "whole" || SaveMethod == "gragh")
+		FileName= selName + "_" + crossName + "_" + mutName + "_" + std::to_string(seed) + "_" + nowtime;
+	else if (SaveMethod == "experiment")
+		FileName = selName + "_" + crossName + "_" + mutName + "_";
+	std::string FullFile;
+	if(SaveMethod=="experiment"||SaveMethod=="whole")
+		FullFile = FilePath + FileName+ ".csv";
+	else
+		FullFile = FilePath + FileName + "_gragh" + ".csv";
 
-	std::ofstream out(FullFile, std::ios::app);											//存入当前策略
+	//std::ofstream outGragh(FileGragh, std::ios::app);													//以纯数据形式存储（一次实验一个文件）
+	//if (!outGragh)
+	//	throw std::invalid_argument("无效的输出图表路径：" + FileGragh);
+	//if(SaveMethod=="gragh")
+	//	outGragh << "gen" << "," << "best" << '\n';
+	std::ofstream out(FullFile,std::ios::app);										//存入当前策略（一次实验一个文件）
 	if (!out)
 		throw std::invalid_argument("无效的输出结果路径：" + FullFile);
-	out << selName << "_" << crossName << "_" << mutName <<'\n';
-	out << "pc= " <<std::fixed<<std::setprecision(2)<< pc << "," << " pm= " << pm << "," << " seed= " << std::to_string(seed)<<'\n';
-	if (eli != 2)
-		out << "eli= " << std::to_string(eli) << '\n';
-	if (popSize != 100)
-		out << "popSize= " << std::to_string(popSize) << '\n';
-	if (gens != 500)
-		out << "gens= " << std::to_string(gens) << '\n';
+
+	out.seekp(0, std::ios::end);
+	bool Is_empty = out.tellp();
+	if (SaveMethod != "gragh" && !Is_empty)
+	{
+		out << selName << "_" << crossName << "_" << mutName << '\n';
+		out << "pc= " << std::fixed << std::setprecision(2) << pc << "," << " pm= " << pm << "," << " seed= " << std::to_string(seed) << '\n';
+		if (eli != 2)
+			out << "eli= " << std::to_string(eli) << '\n';
+		if (popSize != 100)
+			out << "popSize= " << std::to_string(popSize) << '\n';
+		if (gens != 500)
+			out << "gens= " << std::to_string(gens) << '\n';
+		if (selName == "tournament")
+			out << "tournament_k= " << k << '\n';
+		out << '\n';
+		if(SaveMethod=="experiment")
+			out << "seed" << "," << "best" << "," << "stop" << '\n';
+	}
+	if(SaveMethod=="whole"||SaveMethod=="gragh")
+		out << "gen" << "," << "best" << '\n';
 
 	//初始化插槽变量（待插入具体函数名）
 	SelectFunc selectFunc;
@@ -104,10 +132,7 @@ int main(int argc, char** argv)
 
 	//选择
 	if (selName == "tournament")
-	{
 		selectFunc = SelectByTournament;
-		out << "tournament_k= " << k << '\n';
-	}
 	else if (selName == "rank")
 		selectFunc = SelectByRoulette_rank;
 	else if (selName == "r1")
@@ -159,19 +184,13 @@ int main(int argc, char** argv)
 	}
 
 	double FirstBest = *std::min_element(len.begin(), len.end());	//存入起始的最优路径
-	out << '\n';
-	out << "gen" << "," << "best" << '\n';
-	out << -1 << "," <<std::fixed<<std::setprecision(4)<< FirstBest << '\n';
-
+	if(SaveMethod=="whole")
+		out << -1 << "," <<std::fixed<<std::setprecision(4)<< FirstBest << '\n';
 	int StopGen = 0;												//判断第几代收敛
 	double Shortest = 1e9;
 	int count = 0;													//连续多少代不变判断为收敛
 	int finalstop = 0;
 	
-	std::ofstream outGragh(FileGragh);
-	if (!outGragh)
-		throw std::invalid_argument("无效的输出图表路径：" + FileGragh);
-	outGragh << "gen" << "," << "best" << '\n';
 
 	for (int g = 0;g < gens;g++)
 	{
@@ -219,8 +238,11 @@ int main(int argc, char** argv)
 		}
 
 		double currentBest = *std::min_element(len.begin(), len.end());
-		out << g << "," << std::fixed << std::setprecision(4) << currentBest << '\n';			//每一代结果存入文件
-		outGragh << g << "," << std::fixed << std::setprecision(4) << currentBest << '\n';
+
+		if(SaveMethod=="whole")
+			out << g << "," << std::fixed << std::setprecision(4) << currentBest << '\n';			//每一代结果存入文件
+		if(SaveMethod=="gragh")
+			out << g << "," << std::fixed << std::setprecision(4) << currentBest << '\n';
 
 		if (currentBest < Shortest)									//判断是否收敛
 		{
@@ -234,7 +256,6 @@ int main(int argc, char** argv)
 		{
 			finalstop = StopGen;
 		}
-
 		///控制台测试区
 		// 1. 看看种群多样性（有多少个不同的个体）
 		//std::set<std::vector<int>> unique_pop(pop.begin(), pop.end());
@@ -245,13 +266,23 @@ int main(int argc, char** argv)
 		//std::cout << "当前代最好: " << currentBest << "，最差: " << worst << "\n";
 		//======================================================
 	}
+	if (finalstop == 0 && count != 0)
+		finalstop = StopGen;
 	std::vector<int> NearestTour = NearestNeighbor(inst);
 	//std::cout << "基于临近最短的2-opt优化结果：" << TwoOptSearch(inst, NearestTour, 50)<<'\n';
-	out << "stop improve at gen:" << std::to_string(finalstop) << '\n';
-	
-
-	out << '\n';
-	out << "standard"<<"," << std::fixed << std::setprecision(4) << TwoOptSearch(inst, NearestTour, 50) << '\n';
-	out.close();
+	if (SaveMethod == "whole")
+	{
+		out << "stop improve at gen:" << std::to_string(finalstop) << '\n';
+		out << '\n';
+		out << "standard" << "," << std::fixed << std::setprecision(4) << TwoOptSearch(inst, NearestTour, 50) << '\n';
+		out.close();
+	}
+	if (SaveMethod == "experiment")
+	{
+		out << seed <<"," << std::fixed << std::setprecision(4) <<Shortest <<","<<finalstop << '\n';
+		out << '\n';
+		out << "standard" << "," << std::fixed << std::setprecision(4) << TwoOptSearch(inst, NearestTour, 50) << '\n';
+		out.close();
+	}
 	return 0;
 }

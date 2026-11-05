@@ -3,7 +3,11 @@
 城市数						--n 数字			默认50
 种群规模						--popS 数字  		默认100
 代数							--gens 数字		默认500
-随机数种子						 --seed 数字  		默认42
+随机数种子						--seed 数字  		默认42
+
+保存方法；1，每次详细数据（默认）	--save whole
+保存方法：2，每次纯净数据（画图用） --save gragh
+保存方法：3，多次实验结果			--save experiment		
 
 选择：0，精英保留  				--eli 数字		表示保留几个精英，默认2
 选择：1，锦标赛	（默认）   			--sel tournament		--k 数字 		k表示锦标赛规模，默认3
@@ -21,5 +25,5 @@
 @echo off
 for /L %%i in (1,1,10) do
 (
-	x64\Debug\my_TSP_project.exe --sel tournament --mut swap --seed %%i
+	x64\Debug\my_TSP_project.exe --sel tournament --mut swap --seed %%i --save experiment
 )

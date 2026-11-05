@@ -15,9 +15,9 @@ Problem，TSP）：4 种选择策略、1 种交叉算子、3 种变异算子、�
 | 交叉  | 顺序交叉（Order Crossover，OX）                                       |
 | 变异  | 交换（swap）、2-opt 反转、2-opt + 贪心                                   |
 | 基准  | 最近邻构造（Nearest Neighbor）、2-opt 局部搜索，结果写入 CSV 的 `standard` 行作为对照 |
-| 输出  | 每次实验一份 CSV（含配置元数据）+ 一份只含 `gen,best` 的绘图用 CSV                   |
+| 输出  | 可选每次实验一份 CSV（含配置元数据）或 一份只含 `gen,best` 的绘图用 CSV  或  多次实验的最终结果   |
 
-## 目录结构
+ ## 目录结构
 
 ```
 my_TSP_project/
@@ -44,8 +44,8 @@ my_TSP_project/
 
 ```bat
 x64\Debug\my_TSP_project.exe --sel tournament --mut swap --seed 1
-x64\Debug\my_TSP_project.exe --sel r2 --mut 2optG --pm 0.6 --seed 3
-x64\Debug\my_TSP_project.exe --sel rank --mut 2opt --n 100 --gens 1000 --seed 7
+x64\Debug\my_TSP_project.exe --sel r2 --mut 2optG --pm 0.6 --seed 3 --save gragh
+x64\Debug\my_TSP_project.exe --sel rank --mut 2opt --n 100 --gens 1000 --seed 7 --save experiment
 ```
 
 ### 参数
@@ -63,6 +63,7 @@ x64\Debug\my_TSP_project.exe --sel rank --mut 2opt --n 100 --gens 1000 --seed 7
 | `--gens`  | 迭代代数                                     | 500          |
 | `--n`     | 城市数量                                     | 50           |
 | `--seed`  | 随机种子                                     | 42           |
+| --save    | 保存方法                                     | whole        |
 
 ### 批量跑多个种子
 
@@ -70,13 +71,13 @@ x64\Debug\my_TSP_project.exe --sel rank --mut 2opt --n 100 --gens 1000 --seed 7
 
 ```bat
 for /L %%i in (1,1,10) do (
-    x64\Debug\my_TSP_project.exe --sel tournament --mut swap --seed %%i
+    x64\Debug\my_TSP_project.exe --sel tournament --mut swap --seed %%i --save experiment
 )
 ```
 
 ## 输出格式
 
-每次运行在 `results/` 下生成两个文件。
+每次运行在 `results/` 下生成仅一个文件。
 
 **主结果** `<配置>_<种子>_<时间戳>.csv`：
 
@@ -99,6 +100,8 @@ standard,6503.8798
 
 **绘图用** `<配置>_<种子>_<时间戳>_gragh.csv`：只有 `gen,best` 两列，可直接拖进
 Excel / WPS 画收敛曲线。
+
+多次重复实验（只改变种子）用<配置>\_<种子>.csv：只有策略参数和每次实验的最终结果
 
 ## 已跑的实验与初步结果
 
