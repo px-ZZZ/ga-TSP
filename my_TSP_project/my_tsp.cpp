@@ -100,9 +100,9 @@ std::vector<int> NearestNeighbor(const TspInstance& inst)	//生成临近最短的一条路
 	const int n = inst.size();
 	std::vector<int> tour;
 	tour.reserve(static_cast<size_t>(n));
-	std::vector<char> visited(static_cast<size_t>(n),0);
+	std::vector<char> visited(static_cast<size_t>(n),0);	//visited数组用于记录城市有没有被访问
 
-	int cur = 0;
+	int cur = 0;											//以0为起点
 	tour.push_back(cur);
 	visited[cur] = 1;
 
@@ -115,7 +115,7 @@ std::vector<int> NearestNeighbor(const TspInstance& inst)	//生成临近最短的一条路
 			if (visited[j])
 				continue;
 			const double d = inst.distance(cur, j);
-			if (d < BestLength)
+			if (d < BestLength)								//每一次都找当前最短的路径（贪心）
 			{
 				BestLength = d;
 				BestCity = j;

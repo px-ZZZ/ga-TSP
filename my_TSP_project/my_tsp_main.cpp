@@ -47,6 +47,7 @@ int main(int argc, char** argv)
 {
 	std::filesystem::create_directories("results");			//若当前文件夹没有"results"文件夹，则会自动创建一个
 	std::cout << "成功执行一次实验" << std::endl;
+	auto start_time = std::chrono::high_resolution_clock::now();		//记录初始时间（用于计算一次实验跑了多久）
 //====================搭建参数默认值====================
 	int n = 50;					//城市数
 	int popSize = 100;			//种群规模
@@ -100,6 +101,10 @@ int main(int argc, char** argv)
 	if (!out)
 		throw std::invalid_argument("无效的输出结果路径：" + FullFile);
 //====================输出策略参数====================
+
+	TspInstance inst = TspInstance::RandomGenerate(n, 42);		//以42作为随机数种子实例化一个对象(重复实验都不改变这个值)
+	std::vector<int> NearestTour = NearestNeighbor(inst);		//取基准解
+
 	out.seekp(0, std::ios::end);													//读取文件末尾
 	bool Is_empty = out.tellp();													//判断文件是否为空，空则需要输出策略参数
 	if (SaveMethod != "gragh" && !Is_empty)
@@ -117,6 +122,8 @@ int main(int argc, char** argv)
 		out << '\n';
 		if(SaveMethod=="experiment")
 			out << "seed" << "," << "best" << "," << "stop" << '\n';
+		out << '\n';
+		out << "standard" << "," << std::fixed << std::setprecision(4) << TwoOptSearch(inst, NearestTour, 50) << '\n';
 	}
 	if(SaveMethod=="whole"||SaveMethod=="gragh")
 		out << "gen" << "," << "best" << '\n';
@@ -154,7 +161,6 @@ int main(int argc, char** argv)
 		throw std::invalid_argument("无效的变异策略：" + mutName);
 //========================================2，实例化城市类========================================
 	std::mt19937 rng(seed);
-	TspInstance inst = TspInstance::RandomGenerate(n, 42);		//以42作为随机数种子实例化一个对象(重复实验都不改变这个值)
 	std::vector<int> base(n);										//初始化路径：从0一直走到49号城市
 	for (int i = 0;i < n;i++)
 		base[i] = i;
@@ -232,8 +238,11 @@ int main(int argc, char** argv)
 
 		double currentBest = *std::min_element(len.begin(), len.end());								//取所有个体里的最优个体长度
 
-		if(SaveMethod=="whole"|| SaveMethod == "gragh")
-			out << g << "," << std::fixed << std::setprecision(4) << currentBest << '\n';			//每一代结果存入文件
+//====================写入文件====================
+		if(SaveMethod == "gragh")
+			out << g << "," << std::fixed << std::setprecision(4) << currentBest << '\n';
+		if (SaveMethod == "whole" && g % 10 == 0)
+			out << g << "," << std::fixed << std::setprecision(4) << currentBest << '\n';
 
 		if (currentBest < Shortest)									//判断是否收敛
 		{
@@ -253,8 +262,7 @@ int main(int argc, char** argv)
 //========================================4，结束ga========================================
 	if (finalstop == 0 && count != 0)
 		finalstop = StopGen;
-	std::vector<int> NearestTour = NearestNeighbor(inst);
-	//std::cout << "基于临近最短的2-opt优化结果：" << TwoOptSearch(inst, NearestTour, 50)<<'\n';
+
 	if (SaveMethod == "whole")
 	{
 		out << "stop improve at gen:" << std::to_string(finalstop) << '\n';
@@ -266,8 +274,11 @@ int main(int argc, char** argv)
 	{
 		out << seed <<"," << std::fixed << std::setprecision(4) <<Shortest <<","<<finalstop << '\n';
 		out << '\n';
-		out << "standard" << "," << std::fixed << std::setprecision(4) << TwoOptSearch(inst, NearestTour, 50) << '\n';
 		out.close();
 	}
+	auto end_time = std::chrono::high_resolution_clock::now();			//终止时间
+	std::chrono::duration<double> elapsed = end_time - start_time;		//差值
+	std::cout << "程序运行耗时: " << elapsed.count() << " 秒" << std::endl;
+
 	return 0;
 }
